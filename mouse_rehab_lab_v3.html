@@ -1,0 +1,429 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f3ef;
+  --bg2:#eceae4;
+  --bg3:#e0ddd6;
+  --text:#1a1a18;
+  --text2:#5a5a54;
+  --text3:#8a8a82;
+  --border:#c8c6be;
+  --green:#3B6D11;
+  --blue:#185FA5;
+  --red:#A32D2D;
+  --amber:#BA7517;
+  --green-bg:#EAF3DE;
+  --red-bg:#FCEBEB;
+  --radius:10px;
+}
+body,html{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif}
+.lab{padding:1rem;background:var(--bg);min-height:100vh}
+.progress-bar{display:flex;gap:6px;margin-bottom:1.2rem;align-items:center}
+.prog-step{flex:1;height:6px;border-radius:3px;background:var(--border);transition:background 0.4s}
+.prog-step.done{background:var(--green)}
+.prog-step.active{background:var(--blue)}
+.prog-label{font-size:11px;color:var(--text2);white-space:nowrap;margin-left:6px}
+.mouse-header{display:flex;align-items:center;gap:12px;margin-bottom:1rem;padding:10px 14px;background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border)}
+.mouse-badge{font-size:22px;line-height:1}
+.mouse-name{font-size:15px;font-weight:600;color:var(--text)}
+.mouse-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.ctrl{background:var(--bg2);border-radius:var(--radius);padding:8px 10px;border:1px solid var(--border)}
+.ctrl label{font-size:10px;color:var(--text2);display:block;margin-bottom:5px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
+.ctrl select{width:100%;font-size:12px;background:#fff;border:1px solid var(--border);border-radius:6px;padding:5px 6px;color:var(--text);-webkit-appearance:auto;appearance:auto}
+.treadmill{background:var(--bg2);border-radius:var(--radius);border:1px solid var(--border);padding:0.8rem;margin-bottom:0.8rem;position:relative;overflow:hidden}
+.tm-inner{position:relative;height:110px}
+canvas#belt{position:absolute;bottom:0;left:0;width:100%;height:28px}
+#mouseSvg{position:absolute;bottom:28px;left:50%;transform:translateX(-50%)}
+.week-label{font-size:10px;color:var(--text2);text-align:right;margin-top:3px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0.8rem}
+.stat{background:var(--bg2);border-radius:var(--radius);padding:8px 10px;border:1px solid var(--border)}
+.stat-label{font-size:10px;color:var(--text2);margin-bottom:3px;font-weight:600}
+.stat-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:3px}
+.stat-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+.stat-val{font-size:14px;font-weight:600;color:var(--text)}
+.btn-row{display:flex;gap:8px;margin-bottom:0.5rem}
+.btn{flex:1;padding:9px;font-size:13px;font-weight:600;border:1.5px solid var(--border);border-radius:var(--radius);background:#fff;color:var(--text);cursor:pointer;font-family:inherit;transition:background 0.15s}
+.btn:hover{background:var(--bg3)}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn.primary{background:var(--text);color:#fff;border-color:var(--text)}
+.btn.primary:hover{background:#333}
+.btn.primary:disabled{background:var(--text2);border-color:var(--text2)}
+.msg{font-size:12px;color:var(--text2);min-height:16px;text-align:center;font-weight:500}
+.effect-tag{font-size:10px;color:var(--blue);font-weight:600;position:absolute;animation:floatUp 1.4s ease-out forwards;pointer-events:none;background:rgba(255,255,255,0.85);padding:2px 6px;border-radius:10px}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-36px)}}
+
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:100}
+.result-card{background:#fff;border-radius:var(--radius);border:1px solid var(--border);padding:1.4rem 1.6rem;width:90%;max-width:440px;max-height:88vh;overflow-y:auto}
+.result-title{font-size:16px;font-weight:700;margin-bottom:0.8rem;color:var(--text)}
+.score-display{text-align:center;margin:0.8rem 0}
+.score-big{font-size:52px;font-weight:700;color:var(--text);line-height:1}
+.score-sub{font-size:13px;color:var(--text2);margin-top:4px}
+.stars{font-size:22px;letter-spacing:4px;margin:6px 0;color:#BA7517}
+.border-label{font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;display:inline-block;margin-bottom:10px}
+.pass{background:var(--green-bg);color:var(--green)}
+.fail{background:var(--red-bg);color:var(--red)}
+.tissue-section{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.tissue-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:0.6rem}
+.tissue-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0.8rem}
+.tissue-cell{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.tissue-label{font-size:10px;color:var(--text2);padding:4px 6px;text-align:center;font-weight:600;background:#fff}
+.result-detail{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:1rem;background:var(--bg2);padding:10px 12px;border-radius:8px}
+.next-btn{width:100%;padding:11px;font-size:13px;font-weight:700;border:1.5px solid var(--text);border-radius:var(--radius);background:var(--text);color:#fff;cursor:pointer;font-family:inherit}
+.next-btn:hover{background:#333}
+
+.final-screen{text-align:center;padding:2rem 1rem}
+.final-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:0.5rem}
+.final-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
+.final-scores{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1.5rem;text-align:left}
+.final-score-item{background:var(--bg2);border-radius:var(--radius);padding:10px;border:1px solid var(--border)}
+.fsi-name{font-size:11px;color:var(--text2);font-weight:600}
+.fsi-val{font-size:20px;font-weight:700;color:var(--text)}
+.fsi-stars{font-size:13px;color:#BA7517}
+</style>
+
+<div class="lab" id="mainLab">
+  <div class="progress-bar" id="progressBar"></div>
+  <div class="mouse-header" id="mouseHeader"></div>
+  <div class="controls">
+    <div class="ctrl">
+      <label>傾斜</label>
+      <select id="slope">
+        <option value="down">下り坂（遠心性）</option>
+        <option value="flat" selected>平地</option>
+        <option value="up">上り坂（求心性）</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>強度</label>
+      <select id="intensity">
+        <option value="low">低強度</option>
+        <option value="mid" selected>中強度</option>
+        <option value="high">高強度</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>期間</label>
+      <select id="duration">
+        <option value="2">2週間</option>
+        <option value="4" selected>4週間</option>
+        <option value="8">8週間</option>
+      </select>
+    </div>
+  </div>
+  <div class="treadmill" id="treadmill">
+    <div class="tm-inner">
+      <canvas id="belt"></canvas>
+      <svg id="mouseSvg" width="80" height="80" viewBox="0 0 80 80"></svg>
+    </div>
+    <div class="week-label" id="weekLabel">待機中</div>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">骨密度</div>
+      <div class="stat-bar"><div class="stat-fill" id="boneFill" style="background:#3B6D11"></div></div>
+      <div class="stat-val" id="boneVal">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">筋肉量</div>
+      <div class="stat-bar"><div class="stat-fill" id="muscleFill" style="background:#185FA5"></div></div>
+      <div class="stat-val" id="muscleVal">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">疲労度</div>
+      <div class="stat-bar"><div class="stat-fill" id="fatigueFill" style="background:#3B6D11"></div></div>
+      <div class="stat-val" id="fatigueVal">—</div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn primary" id="startBtn" onclick="startExperiment()">実験開始</button>
+    <button class="btn" id="resetBtn" onclick="resetCurrent()">リセット</button>
+  </div>
+  <div class="msg" id="msgBox"></div>
+</div>
+
+<div id="overlay" class="overlay" style="display:none">
+  <div class="result-card" id="resultCard"></div>
+</div>
+
+<script>
+const MICE=[
+  {id:1,name:'マウス 1 — 正常マウス',emoji:'🐭',desc:'健常な成体マウス。基準モデル。',color:'#795548',
+   base:{bone:75,muscle:75,fatigue:5},hint:'まずは標準的な介入を試してみよう。',passScore:60,optimalSlope:'flat',optimalIntensity:'mid'},
+  {id:2,name:'マウス 2 — 高齢マウス',emoji:'🐭',desc:'24ヶ月齢。回復が遅く疲労しやすい。',color:'#9E9E9E',
+   base:{bone:52,muscle:52,fatigue:22},hint:'過負荷に注意。低〜中強度が鍵。',passScore:55,optimalSlope:'flat',optimalIntensity:'low'},
+  {id:3,name:'マウス 3 — 骨粗鬆症モデル',emoji:'🐭',desc:'OVXモデル。骨形成が鈍い。',color:'#7986CB',
+   base:{bone:38,muscle:65,fatigue:15},hint:'上り坂で骨への負荷刺激を。',passScore:55,optimalSlope:'up',optimalIntensity:'mid'},
+  {id:4,name:'マウス 4 — 筋萎縮モデル',emoji:'🐭',desc:'後肢懸垂モデル。筋肉が著しく減少。',color:'#EF9F27',
+   base:{bone:65,muscle:32,fatigue:20},hint:'遠心性収縮が筋回復に効果的。',passScore:55,optimalSlope:'down',optimalIntensity:'mid'},
+  {id:5,name:'マウス 5 — がん悪液質モデル',emoji:'🐭',desc:'LLC腫瘍移植モデル。全身消耗。',color:'#EF5350',
+   base:{bone:50,muscle:28,fatigue:28},hint:'最難関。低強度で継続が鍵。',passScore:50,optimalSlope:'flat',optimalIntensity:'low'},
+];
+
+let currentMouseIdx=0,scores=[],running=false,animFrame=null,experimentInterval=null;
+let beltOffset=0,stepPhase=0,week=0,bone=0,muscle=0,fatigue=0,overloaded=false;
+const belt=document.getElementById('belt');
+const ctx=belt.getContext('2d');
+const svg=document.getElementById('mouseSvg');
+
+function init(){renderProgress();renderMouseHeader();resetCurrent();}
+
+function renderProgress(){
+  const bar=document.getElementById('progressBar');
+  bar.innerHTML='';
+  MICE.forEach((m,i)=>{
+    const s=document.createElement('div');
+    s.className='prog-step'+(i<currentMouseIdx?' done':i===currentMouseIdx?' active':'');
+    bar.appendChild(s);
+  });
+  const lbl=document.createElement('div');
+  lbl.className='prog-label';
+  lbl.textContent=(currentMouseIdx+1)+' / '+MICE.length;
+  bar.appendChild(lbl);
+}
+
+function renderMouseHeader(){
+  const m=MICE[currentMouseIdx];
+  document.getElementById('mouseHeader').innerHTML=
+    '<div class="mouse-badge">'+m.emoji+'</div>'+
+    '<div><div class="mouse-name">'+m.name+'</div>'+
+    '<div class="mouse-desc">'+m.desc+'　💡 '+m.hint+'</div></div>';
+}
+
+function getParams(){
+  return{slope:document.getElementById('slope').value,
+         intensity:document.getElementById('intensity').value,
+         duration:parseInt(document.getElementById('duration').value)};
+}
+
+function getSpeed(i){return{low:1.4,mid:2.8,high:5}[i]||2.8;}
+function getTilt(s){return{down:13,flat:0,up:-13}[s]||0;}
+
+function resetCurrent(){
+  running=false;
+  cancelAnimationFrame(animFrame);
+  clearInterval(experimentInterval);
+  week=0;overloaded=false;
+  const m=MICE[currentMouseIdx];
+  bone=m.base.bone;muscle=m.base.muscle;fatigue=m.base.fatigue;
+  updateUI();
+  document.getElementById('weekLabel').textContent='待機中';
+  document.getElementById('msgBox').textContent='';
+  document.getElementById('startBtn').disabled=false;
+  drawMouse(fatigue,'flat',0);
+  drawBelt(0,'flat');
+}
+
+function startExperiment(){
+  if(running)return;
+  running=true;overloaded=false;
+  document.getElementById('startBtn').disabled=true;
+  document.getElementById('msgBox').textContent='';
+  const p=getParams();
+  animateLoop(getSpeed(p.intensity),p.slope);
+  const maxW=p.duration;
+  experimentInterval=setInterval(()=>{
+    week++;
+    document.getElementById('weekLabel').textContent=week+'週目 / '+getParams().duration+'週間';
+    tickStats();showEffect();
+    if(week>=maxW){clearInterval(experimentInterval);stopExperiment();}
+  },1100);
+}
+
+function animateLoop(speed,slope){
+  stepPhase+=speed*0.05;
+  drawMouse(fatigue,slope,stepPhase);
+  drawBelt(speed,slope);
+  if(running)animFrame=requestAnimationFrame(()=>animateLoop(speed,slope));
+}
+
+function tickStats(){
+  const p=getParams();const m=MICE[currentMouseIdx];
+  const fi={low:3,mid:6,high:13}[p.intensity]||6;
+  const fm=m.id===2?1.7:m.id===5?1.6:m.id===4?1.4:1;
+  fatigue=Math.min(100,fatigue+fi*fm);
+  if(fatigue>72){
+    overloaded=true;bone=Math.max(0,bone-2);muscle=Math.max(0,muscle-5);
+    document.getElementById('msgBox').textContent='⚠ 過負荷検出！';
+  }else{
+    const bg={up:4.5,flat:2.2,down:1.2}[p.slope]||2;
+    const bm=m.id===3?0.45:m.id===2?0.65:1;
+    bone=Math.min(100,bone+bg*bm);
+    const mg={down:5.5,flat:2.2,up:2.8}[p.slope]||2.2;
+    const mm=m.id===4?0.55:m.id===5?0.4:m.id===2?0.7:1;
+    muscle=Math.min(100,muscle+mg*mm);
+  }
+  updateUI();
+}
+
+function updateUI(){
+  const set=(id,val,col)=>{
+    document.getElementById(id+'Fill').style.width=val+'%';
+    document.getElementById(id+'Fill').style.background=col;
+    document.getElementById(id+'Val').textContent=Math.round(val);
+  };
+  set('bone',bone,'#3B6D11');
+  set('muscle',muscle,'#185FA5');
+  const fc=fatigue>72?'#A32D2D':fatigue>45?'#BA7517':'#3B6D11';
+  set('fatigue',fatigue,fc);
+}
+
+function showEffect(){
+  if(fatigue>72)return;
+  const p=getParams();
+  const tags={down:['遠心性収縮','筋損傷→再生','リモデリング↑'],up:['求心性収縮','骨形成↑','心肺負荷↑'],flat:['有酸素刺激','代謝改善','筋持久力↑']};
+  const t=document.createElement('div');
+  t.className='effect-tag';
+  t.textContent=tags[p.slope][Math.floor(Math.random()*3)];
+  t.style.left=(25+Math.random()*50)+'%';
+  t.style.top=(5+Math.random()*35)+'%';
+  document.getElementById('treadmill').appendChild(t);
+  setTimeout(()=>t.remove(),1400);
+}
+
+function stopExperiment(){
+  running=false;cancelAnimationFrame(animFrame);
+  showResult(MICE[currentMouseIdx],getParams());
+}
+
+function calcScore(m,p){
+  if(overloaded)return{total:18,breakdown:{bone:8,muscle:8,safety:0,efficiency:2}};
+  const bi=bone-m.base.bone,mi=muscle-m.base.muscle;
+  const bs=Math.min(35,Math.max(0,bi*1.4));
+  const ms=Math.min(35,Math.max(0,mi*1.1));
+  const ss=fatigue<50?20:fatigue<70?12:5;
+  const es=(p.slope===m.optimalSlope&&p.intensity===m.optimalIntensity)?10:5;
+  return{total:Math.min(100,Math.round(bs+ms+ss+es)),breakdown:{bone:Math.round(bs),muscle:Math.round(ms),safety:ss,efficiency:es}};
+}
+
+function starsFromScore(s){
+  if(s>=80)return'★★★★★';if(s>=65)return'★★★★☆';if(s>=50)return'★★★☆☆';if(s>=35)return'★★☆☆☆';return'★☆☆☆☆';
+}
+
+function genBoneSVG(good){
+  const d=good?8:3;let lines='';
+  for(let i=0;i<d;i++){
+    const x1=10+Math.random()*60,y1=10+Math.random()*40;
+    const x2=x1+(Math.random()-0.5)*30,y2=y1+(Math.random()-0.5)*20;
+    lines+='<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+(good?'#388e3c':'#e57373')+'" stroke-width="2.5" stroke-linecap="round"/>';
+  }
+  return '<svg viewBox="0 0 80 60" width="100%" style="background:'+(good?'#f1f8e9':'#ffebee')+'"><rect x="5" y="5" width="70" height="50" rx="3" fill="none" stroke="'+(good?'#a5d6a7':'#ef9a9a')+'" stroke-width="0.5"/>'+lines+'</svg>';
+}
+
+function genMuscleSVG(good){
+  const n=good?6:2,th=good?8:3;let r='';
+  for(let i=0;i<n;i++){
+    const y=8+i*(50/n);
+    r+='<rect x="8" y="'+y+'" width="'+(55+Math.random()*10)+'" height="'+(th-1)+'" rx="2" fill="'+(good?'#1976d2':'#e57373')+'" opacity="'+(0.5+Math.random()*0.5)+'"/>';
+  }
+  return '<svg viewBox="0 0 80 60" width="100%" style="background:'+(good?'#e3f2fd':'#ffebee')+'"><rect x="5" y="5" width="70" height="50" rx="3" fill="none" stroke="'+(good?'#90caf9':'#ef9a9a')+'" stroke-width="0.5"/>'+r+'</svg>';
+}
+
+function genInflamSVG(good){
+  const n=good?3:10;let d='';
+  for(let i=0;i<n;i++){
+    const cx=10+Math.random()*60,cy=10+Math.random()*40,r=good?3:5+Math.random()*4;
+    d+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+(good?'#fdd835':'#e53935')+'" opacity="'+(good?0.6:0.75)+'"/>';
+  }
+  return '<svg viewBox="0 0 80 60" width="100%" style="background:'+(good?'#fffde7':'#ffebee')+'"><rect x="5" y="5" width="70" height="50" rx="3" fill="none" stroke="'+(good?'#fff176':'#ef9a9a')+'" stroke-width="0.5"/>'+d+'</svg>';
+}
+
+function showResult(m,p){
+  const sc=calcScore(m,p);
+  scores[currentMouseIdx]=sc.total;
+  const passed=sc.total>=m.passScore;
+  const isLast=currentMouseIdx===MICE.length-1;
+  let detail='';
+  if(overloaded)detail='過負荷により実験は中断されました。強度を下げるか期間を短くしてください。';
+  else if(passed)detail='骨密度 '+Math.round(bone)+' / 筋肉量 '+Math.round(muscle)+' — 良好な改善が得られました。'+(m.optimalSlope===p.slope&&m.optimalIntensity===p.intensity?'最適プロトコルを選択！':'別の条件でさらに高得点を狙えます。');
+  else detail='スコアが合格ライン（'+m.passScore+'点）に届きませんでした。プログラムを見直して再挑戦してください。';
+
+  const boneOK=bone>=65,muscleOK=muscle>=60,fatigueOK=fatigue<65;
+  document.getElementById('resultCard').innerHTML=
+    '<div class="result-title">'+m.name+' — 実験結果</div>'+
+    '<div class="score-display">'+
+      '<div class="score-big">'+sc.total+'</div>'+
+      '<div class="score-sub">/ 100点　合格ライン: '+m.passScore+'点</div>'+
+      '<div class="stars">'+starsFromScore(sc.total)+'</div>'+
+      '<span class="border-label '+(passed?'pass':'fail')+'">'+(passed?'✓ 合格':'✗ 不合格')+'</span>'+
+    '</div>'+
+    '<div class="result-detail">'+detail+'</div>'+
+    '<div class="tissue-section">'+
+      '<div class="tissue-title">組織評価</div>'+
+      '<div class="tissue-grid">'+
+        '<div class="tissue-cell">'+genBoneSVG(boneOK)+'<div class="tissue-label">骨組織　'+(boneOK?'▲良好':'▼低下')+'</div></div>'+
+        '<div class="tissue-cell">'+genMuscleSVG(muscleOK)+'<div class="tissue-label">筋組織　'+(muscleOK?'▲良好':'▼萎縮')+'</div></div>'+
+        '<div class="tissue-cell">'+genInflamSVG(fatigueOK)+'<div class="tissue-label">炎症　'+(fatigueOK?'▲軽微':'▼過剰')+'</div></div>'+
+      '</div>'+
+    '</div>'+
+    '<button class="next-btn" onclick="'+(passed?(isLast?'showFinal()':'nextMouse()'):'retryMouse()')+'">'+(passed?(isLast?'全実験完了 →':'次のマウスへ →'):'再挑戦する')+'</button>';
+
+  document.getElementById('overlay').style.display='flex';
+}
+
+function nextMouse(){
+  document.getElementById('overlay').style.display='none';
+  currentMouseIdx++;renderProgress();renderMouseHeader();resetCurrent();
+}
+
+function retryMouse(){
+  document.getElementById('overlay').style.display='none';resetCurrent();
+}
+
+function showFinal(){
+  document.getElementById('overlay').style.display='none';
+  const avg=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+  let html='<div class="final-screen"><div class="final-title">全実験クリア！</div><div class="final-sub">5匹のマウスへの介入が完了しました</div><div class="final-scores">';
+  MICE.forEach((m,i)=>{
+    html+='<div class="final-score-item"><div class="fsi-name">'+m.name+'</div><div class="fsi-val">'+scores[i]+'点</div><div class="fsi-stars">'+starsFromScore(scores[i])+'</div></div>';
+  });
+  html+='</div><div style="font-size:16px;font-weight:700;color:#1a1a18;margin-bottom:6px">総合スコア '+avg+'点　'+starsFromScore(avg)+'</div>';
+  html+='<div style="font-size:12px;color:#5a5a54;margin-bottom:1.2rem">'+(avg>=70?'優秀な研究者！論文投稿レベルの成果です。':avg>=55?'良好な成果。さらなる最適化を試みよう。':'基礎から見直してみよう。')+'</div>';
+  html+='<button class="next-btn" onclick="restartAll()">最初からやり直す</button></div>';
+  document.getElementById('mainLab').innerHTML=html;
+}
+
+function restartAll(){
+  currentMouseIdx=0;scores=[];
+  location.reload();
+}
+
+function drawMouse(fatVal,slope,phase){
+  const tilt=getTilt(slope);const tired=fatVal>70;
+  const fur=tired?'#c62828':MICE[currentMouseIdx].color;
+  const dark=tired?'#b71c1c':'#3e2723';
+  svg.innerHTML='<g transform="translate(40,50) rotate('+tilt+')">'+
+    '<path d="M-22,0 Q-38,-10 -42,8" stroke="'+dark+'" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+    '<ellipse cx="0" cy="-5" rx="22" ry="13" fill="'+fur+'"/>'+
+    '<line x1="8" y1="5" x2="'+(8+Math.sin(phase)*10)+'" y2="'+(18+Math.abs(Math.cos(phase))*5)+'" stroke="'+dark+'" stroke-width="4" stroke-linecap="round"/>'+
+    '<line x1="8" y1="5" x2="'+(8-Math.sin(phase)*10)+'" y2="'+(18+Math.abs(Math.cos(phase+Math.PI))*5)+'" stroke="'+dark+'" stroke-width="4" stroke-linecap="round"/>'+
+    '<line x1="-10" y1="5" x2="'+(-10+Math.sin(phase+0.5)*10)+'" y2="'+(18+Math.abs(Math.cos(phase+0.5))*5)+'" stroke="'+dark+'" stroke-width="4" stroke-linecap="round"/>'+
+    '<line x1="-10" y1="5" x2="'+(-10-Math.sin(phase+0.5)*10)+'" y2="'+(18+Math.abs(Math.cos(phase+1.5))*5)+'" stroke="'+dark+'" stroke-width="4" stroke-linecap="round"/>'+
+    '<ellipse cx="20" cy="-12" rx="13" ry="11" fill="'+fur+'"/>'+
+    '<ellipse cx="22" cy="-22" rx="6" ry="7" fill="'+dark+'"/>'+
+    '<ellipse cx="22" cy="-22" rx="3.5" ry="4.5" fill="#f8bbd0"/>'+
+    '<circle cx="27" cy="-14" r="2.5" fill="#111"/>'+
+    '<circle cx="28" cy="-15" r="0.8" fill="white"/>'+
+    '<ellipse cx="33" cy="-10" rx="2.5" ry="1.5" fill="#e91e63"/>'+
+    '<line x1="33" y1="-10" x2="43" y2="-8" stroke="#ccc" stroke-width="0.7"/>'+
+    '<line x1="33" y1="-10" x2="43" y2="-11" stroke="#ccc" stroke-width="0.7"/>'+
+    (tired?'<text x="40" y="-5" font-size="12">💧</text>':'')+
+    '</g>';
+}
+
+function drawBelt(speed,slope){
+  const w=belt.width=belt.offsetWidth||320;const h=belt.height=28;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#616161';ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='#424242';ctx.lineWidth=2;
+  const sp=30;beltOffset=(beltOffset+speed*0.45)%sp;
+  for(let x=-sp+beltOffset;x<w+sp;x+=sp){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+8,h);ctx.stroke();}
+  if(slope!=='flat'){
+    ctx.strokeStyle=slope==='up'?'#ef9f27':'#5DCAA5';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(0,slope==='up'?h:0);ctx.lineTo(w,slope==='up'?0:h);ctx.stroke();
+  }
+}
+
+init();
+</script>
