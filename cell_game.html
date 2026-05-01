@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>細胞を育てろ！ — in vitro 骨芽細胞培養シミュレーター</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --navy:   #1A2F5E;
+    --teal:   #028090;
+    --mint:   #02C39A;
+    --offwh:  #F4F7FA;
+    --white:  #FFFFFF;
+    --gray:   #64748B;
+    --lgray:  #CBD5E1;
+    --black:  #1E293B;
+    --yellow: #F59E0B;
+    --red:    #DC2626;
+    --green:  #16A34A;
+    --cell-body: #E8A0A0;
+    --cell-dark: #C87070;
+    --cell-nucleus: #A05050;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--offwh);
+    color: var(--black);
+    min-height: 100vh;
+  }
+
+  /* ── ヘッダー ── */
+  header {
+    background: var(--navy);
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-badge {
+    background: var(--teal);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 2px;
+    letter-spacing: 1.5px;
+    font-family: 'Space Mono', monospace;
+  }
+  header h1 {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    flex: 1;
+  }
+  .header-sub {
+    color: var(--mint);
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── メインレイアウト ── */
+  .main {
+    display: grid;
+    grid-template-columns: 310px 1fr 280px;
+    gap: 20px;
+    padding: 20px 24px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  /* ── カード共通 ── */
+  .card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 20px;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--teal);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  /* ── 左：パラメータパネル ── */
+  .param-panel {}
+  .param-group { margin-bottom: 22px; }
+  .param-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .param-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .param-icon { font-size: 16px; }
+  .param-value {
+    font-size: 13px;
+    font-family: 'Space Mono', monospace;
+    color: var(--teal);
+    font-weight: 700;
+    min-width: 80px;
+    text-align: right;
+  }
+  .param-sub {
+    font-size: 10px;
+    color: var(--gray);
+    margin-bottom: 6px;
+  }
+
+  /* スライダー */
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--lgray);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--teal);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    background: var(--navy);
+  }
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--gray);
+    margin-top: 3px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* 最適ゾーン表示 */
+  .optimal-hint {
+    font-size: 10px;
+    color: var(--green);
+    margin-top: 4px;
+    display: none;
+  }
+  .optimal-hint.visible { display: block; }
+
+  /* カルチャーボタン */
+  .culture-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+  .culture-btn:hover { background: var(--teal); }
+  .culture-btn:active { transform: scale(0.98); }
+  .culture-btn:disabled { background: var(--lgray); cursor: not-allowed; }
+
+  .reset-btn {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    color: var(--gray);
+    border: 1.5px solid var(--lgray);
+    border-radius: 8px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .reset-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ── 中央：顕微鏡ビュー ── */
+  .microscope-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .microscope-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0a0a1a;
+    border-radius: 10px;
+    padding: 24px;
+    min-height: 380px;
+  }
+  /* 顕微鏡の外枠リング */
+  .scope-outer {
+    position: relative;
+    width: 300px;
+    height: 300px;
+  }
+  .scope-ring {
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    background: conic-gradient(#2a2a3a, #3a3a4a, #2a2a3a, #1a1a2a);
+    box-shadow: 0 0 0 4px #111, 0 0 40px rgba(2,128,144,0.3);
+  }
+  .scope-inner {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #f8f0ee;
+  }
+  canvas#cellCanvas {
+    width: 300px;
+    height: 300px;
+    display: block;
+    border-radius: 50%;
+  }
+
+  /* 顕微鏡のレンズ反射 */
+  .lens-glare {
+    position: absolute;
+    top: 12px;
+    left: 18px;
+    width: 80px;
+    height: 40px;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.18) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* 倍率・染色法表示 */
+  .scope-hud {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+  }
+  .hud-tag {
+    background: rgba(2,128,144,0.85);
+    color: white;
+    font-size: 9px;
+    font-family: 'Space Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.5px;
+  }
+
+  /* アニメーション中のオーバーレイ */
+  .scope-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--mint);
+    font-family: 'Space Mono', monospace;
+    background: rgba(10,10,26,0.7);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    letter-spacing: 1px;
+  }
+  .scope-overlay.visible { opacity: 1; }
+
+  /* ── 結果メーター ── */
+  .meters-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .meter-card {
+    background: white;
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    text-align: center;
+  }
+  .meter-label {
+    font-size: 10px;
+    color: var(--gray);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .meter-value {
+    font-size: 26px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    color: var(--navy);
+    transition: color 0.5s;
+  }
+  .meter-bar-wrap {
+    height: 5px;
+    background: var(--lgray);
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .meter-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--teal);
+    transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+    width: 0%;
+  }
+
+  /* ── 右：フィードバックパネル ── */
+  .feedback-panel {}
+
+  .feedback-score-big {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .score-number {
+    font-size: 56px;
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    color: var(--navy);
+    line-height: 1;
+    transition: color 0.5s;
+  }
+  .score-label { font-size: 11px; color: var(--gray); margin-top: 4px; }
+
+  .score-ring-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .feedback-msg {
+    background: var(--offwh);
+    border-left: 3px solid var(--teal);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--black);
+    margin-bottom: 14px;
+    min-height: 80px;
+    transition: border-color 0.5s;
+  }
+
+  .hint-box {
+    background: #E0F7FA;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11px;
+    color: #065A82;
+    line-height: 1.6;
+  }
+  .hint-title {
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--teal);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 4px;
+  }
+
+  /* 試行履歴 */
+  .history-section { margin-top: 14px; }
+  .history-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gray);
+    letter-spacing: 1px;
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 6px;
+  }
+  .history-list { display: flex; flex-direction: column; gap: 4px; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--gray);
+    padding: 4px 8px;
+    background: var(--offwh);
+    border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+  .history-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── 学習ポイント（クリア後） ── */
+  .learn-box {
+    display: none;
+    background: linear-gradient(135deg, var(--navy), #1C4A7A);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 16px;
+    animation: fadeIn 0.6s ease;
+  }
+  .learn-box.visible { display: block; }
+  .learn-box h3 {
+    font-size: 13px;
+    color: var(--mint);
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .learn-box p { font-size: 12px; line-height: 1.8; color: #CBD5E1; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* スピナー */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(2,195,154,0.3);
+    border-top-color: var(--mint);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* ベストスコア */
+  .best-badge {
+    display: none;
+    background: var(--yellow);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: 'Space Mono', monospace;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .best-badge.visible { display: inline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">STEP 2</div>
+  <h1>🔬 細胞を育てろ！ — 骨芽細胞培養シミュレーター</h1>
+  <div class="header-sub">in vitro experiment</div>
+</header>
+
+<div class="main">
+
+  <!-- ── 左：パラメータパネル ── -->
+  <div class="card param-panel">
+    <div class="card-title">⚙ 培養条件を設定</div>
+
+    <!-- 振動強度 -->
+    <div class="param-group">
+      <div class="param-header">
+        <div class="param-name"><span class="param-icon">📳</span>振動強度</div>
+        <div class="param-value" id="v1-val">50%</div>
+      </div>
+      <div class="param-sub">骨芽細胞への機械刺激（Cyclic Stretch）</div>
+      <input type="range" id="v1" min="0" max="100" value="50" oninput="updateParam('v1')">
+      <div class="range-labels"><span>0%（刺激なし）</span><span>100%（過剰）</span></div>
+      <div class="optimal-hint" id="v1-hint">✓ 最適ゾーン（40〜60%）</div>
+    </div>
+
+    <!-- BMP-2濃度 -->
+    <div class="param-group">
+      <div class="param-header">
+        <div class="param-name"><span class="param-icon">💉</span>BMP-2濃度</div>
+        <div class="param-value" id="v2-val">100 ng/mL</div>
+      </div>
+      <div class="param-sub">骨形成促進因子（Bone Morphogenetic Protein-2）</div>
+      <input type="range" id="v2" min="0" max="500" value="100" oninput="updateParam('v2')">
+      <div class="range-labels"><span>0 ng/mL</span><span>500 ng/mL</span></div>
+      <div class="optimal-hint" id="v2-hint">✓ 最適ゾーン（100〜200 ng/mL）</div>
+    </div>
+
+    <!-- ビタミンD -->
+    <div class="param-group">
+      <div class="param-header">
+        <div class="param-name"><span class="param-icon">☀️</span>ビタミンD濃度</div>
+        <div class="param-value" id="v3-val">10 nM</div>
+      </div>
+      <div class="param-sub">骨代謝調節・カルシウム吸収促進</div>
+      <input type="range" id="v3" min="0" max="100" value="10" oninput="updateParam('v3')">
+      <div class="range-labels"><span>0 nM</span><span>100 nM（過剰）</span></div>
+      <div class="optimal-hint" id="v3-hint">✓ 最適ゾーン（10〜30 nM）</div>
+    </div>
+
+    <!-- 培養温度 -->
+    <div class="param-group">
+      <div class="param-header">
+        <div class="param-name"><span class="param-icon">🌡️</span>培養温度</div>
+        <div class="param-value" id="v4-val">37.0 °C</div>
+      </div>
+      <div class="param-sub">インキュベーター設定温度</div>
+      <input type="range" id="v4" min="320" max="420" value="370" oninput="updateParam('v4')">
+      <div class="range-labels"><span>32°C</span><span>42°C</span></div>
+      <div class="optimal-hint" id="v4-hint">✓ 最適（37°C±0.5）</div>
+    </div>
+
+    <button class="culture-btn" id="cultureBtn" onclick="startCulture()">
+      🧫 培養開始
+    </button>
+    <button class="reset-btn" onclick="resetAll()">リセット</button>
+  </div>
+
+  <!-- ── 中央：顕微鏡 ── -->
+  <div class="microscope-panel">
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div class="microscope-wrap">
+        <div class="scope-outer">
+          <div class="scope-ring"></div>
+          <div class="scope-inner">
+            <canvas id="cellCanvas" width="300" height="300"></canvas>
+          </div>
+          <div class="lens-glare"></div>
+        </div>
+        <div class="scope-hud">
+          <div class="hud-tag">×100 OBJ</div>
+          <div class="hud-tag" id="stainTag">HE染色</div>
+          <div class="hud-tag" id="dayTag">培養 0日目</div>
+        </div>
+        <div class="scope-overlay" id="scopeOverlay">
+          <span class="spinner"></span>培養中...
+        </div>
+      </div>
+    </div>
+
+    <!-- メーターバー -->
+    <div class="meters-row">
+      <div class="meter-card">
+        <div class="meter-label">ALP活性</div>
+        <div class="meter-value" id="m-alp">—</div>
+        <div class="meter-bar-wrap"><div class="meter-bar" id="bar-alp" style="background:var(--teal)"></div></div>
+      </div>
+      <div class="meter-card">
+        <div class="meter-label">石灰化</div>
+        <div class="meter-value" id="m-calc">—</div>
+        <div class="meter-bar-wrap"><div class="meter-bar" id="bar-calc" style="background:var(--mint)"></div></div>
+      </div>
+      <div class="meter-card">
+        <div class="meter-label">細胞生存率</div>
+        <div class="meter-value" id="m-surv">—</div>
+        <div class="meter-bar-wrap"><div class="meter-bar" id="bar-surv" id="bar-surv" style="background:var(--yellow)"></div></div>
+      </div>
+    </div>
+
+    <!-- 学習ポイント -->
+    <div class="learn-box" id="learnBox">
+      <h3>📚 LEARNING POINT</h3>
+      <p id="learnText"></p>
+    </div>
+  </div>
+
+  <!-- ── 右：フィードバック ── -->
+  <div class="card feedback-panel">
+    <div class="card-title">📊 結果レポート</div>
+
+    <div class="feedback-score-big">
+      <div class="score-number" id="scoreNum">—</div>
+      <div class="score-label">総合スコア <span class="best-badge" id="bestBadge">🏆 BEST</span></div>
+    </div>
+
+    <div class="feedback-msg" id="feedbackMsg">
+      条件を設定して「培養開始」を押してください。<br>
+      4つのパラメータを調整し、骨芽細胞の骨形成を最大化しましょう。
+    </div>
+
+    <div class="hint-box" id="hintBox">
+      <div class="hint-title">💡 HINT</div>
+      <div id="hintText">骨芽細胞は適切な機械刺激と成長因子の組み合わせで活性化されます。</div>
+    </div>
+
+    <div class="history-section">
+      <div class="history-title">試行履歴</div>
+      <div class="history-list" id="historyList">
+        <div class="history-item" style="color:var(--lgray);">まだ試行がありません</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── 状態管理 ──────────────────────────────────────────────
+let trialCount = 0;
+let bestScore = 0;
+let history = [];
+let lastResult = null;
+let animFrame = null;
+let cells = [];
+let calcDeposits = [];
+let deadCells = [];
+
+// ── パラメータ更新 ────────────────────────────────────────
+function updateParam(id) {
+  const el = document.getElementById(id);
+  const val = parseFloat(el.value);
+  let display = '', inOptimal = false;
+
+  if (id === 'v1') {
+    display = val + '%';
+    inOptimal = val >= 40 && val <= 60;
+  } else if (id === 'v2') {
+    display = val + ' ng/mL';
+    inOptimal = val >= 100 && val <= 200;
+  } else if (id === 'v3') {
+    display = val + ' nM';
+    inOptimal = val >= 10 && val <= 30;
+  } else if (id === 'v4') {
+    display = (val / 10).toFixed(1) + ' °C';
+    inOptimal = val >= 365 && val <= 375;
+  }
+
+  document.getElementById(id + '-val').textContent = display;
+  const hint = document.getElementById(id + '-hint');
+  if (hint) hint.classList.toggle('visible', inOptimal);
+
+  // スライダーの色
+  const pct = (val - el.min) / (el.max - el.min) * 100;
+  el.style.background = `linear-gradient(to right, var(--teal) ${pct}%, var(--lgray) ${pct}%)`;
+}
+
+// 初期化
+['v1','v2','v3','v4'].forEach(id => updateParam(id));
+
+// ── スコア計算 ────────────────────────────────────────────
+function gauss(x, mu, sigma) {
+  return Math.exp(-0.5 * Math.pow((x - mu) / sigma, 2));
+}
+
+function calcScore() {
+  const v1 = parseFloat(document.getElementById('v1').value); // 振動 0-100, 最適50
+  const v2 = parseFloat(document.getElementById('v2').value); // BMP2 0-500, 最適150
+  const v3 = parseFloat(document.getElementById('v3').value); // VitD 0-100, 最適20
+  const v4 = parseFloat(document.getElementById('v4').value); // 温度 320-420, 最適370
+
+  // 各パラメータのスコア (0〜1)
+  const s1 = gauss(v1, 50, 18);   // 振動
+  const s2 = gauss(v2, 150, 60);  // BMP-2
+  const s3 = gauss(v3, 20, 12);   // VitD
+  const s4 = gauss(v4, 370, 5);   // 温度（シビア）
+
+  // 生存率（温度と振動過剰で死滅）
+  const tempTox  = v4 > 390 ? Math.pow((v4-390)/30, 2) : (v4 < 345 ? Math.pow((345-v4)/25,2) : 0);
+  const vibTox   = v1 > 80 ? Math.pow((v1-80)/20, 2) : 0;
+  const vitdTox  = v3 > 70 ? Math.pow((v3-70)/30, 2) : 0;
+  const survival = Math.max(0, 1 - tempTox*0.9 - vibTox*0.6 - vitdTox*0.4);
+
+  // ALP活性 = 振動×BMP2×VitD×生存
+  const alp = s1 * s2 * s3 * survival * 100;
+
+  // 石灰化 = ALP が高いほど、かつVitDが効く
+  const calc = alp * 0.7 * s3 * (s4 * 0.5 + 0.5);
+
+  // 総合スコア
+  const total = Math.round(alp * 0.4 + calc * 0.3 + survival * 100 * 0.3);
+
+  return {
+    alp: Math.round(alp),
+    calc: Math.round(calc),
+    survival: Math.round(survival * 100),
+    total: Math.min(100, total),
+    s1, s2, s3, s4,
+    tempTox, vibTox, vitdTox,
+    v1, v2, v3, v4
+  };
+}
+
+// ── フィードバックメッセージ ──────────────────────────────
+function getMessages(r) {
+  let msgs = [];
+  let hints = [];
+
+  // 温度
+  if (r.v4 > 390)      msgs.push('🌡️ 温度が高すぎます（' + (r.v4/10).toFixed(1) + '°C）。熱変性で細胞が死滅しました。');
+  else if (r.v4 < 345) msgs.push('🌡️ 温度が低すぎます（' + (r.v4/10).toFixed(1) + '°C）。代謝が低下し細胞が不活性化しました。');
+
+  // 振動
+  if (r.v1 > 80)       msgs.push('📳 振動が強すぎます（' + r.v1 + '%）。機械的ストレスで細胞膜が損傷しました。');
+  else if (r.v1 < 15)  msgs.push('📳 振動が弱すぎます（' + r.v1 + '%）。メカノトランスダクションが起きていません。');
+
+  // BMP-2
+  if (r.v2 < 30)       msgs.push('💉 BMP-2が不足しています（' + r.v2 + ' ng/mL）。骨形成シグナルが入りません。');
+  else if (r.v2 > 350) msgs.push('💉 BMP-2過剰（' + r.v2 + ' ng/mL）。分化が偏り骨芽細胞以外への転換が起きています。');
+
+  // VitD
+  if (r.v3 < 5)        msgs.push('☀️ ビタミンD不足（' + r.v3 + ' nM）。カルシウム代謝調節が働いていません。');
+  else if (r.v3 > 70)  msgs.push('☀️ ビタミンD過剰（' + r.v3 + ' nM）。受容体飽和・毒性が出ています。');
+
+  // スコア別総評
+  if (r.total >= 80) {
+    msgs.unshift('🎉 優秀な結果です！ ALPと石灰化が高値を示しています。');
+    hints.push('この条件は実際の研究でも使用される最適範囲に近いです。各変数の「最適域（hormesis）」がわかりましたか？');
+  } else if (r.total >= 55) {
+    msgs.unshift('✅ まずまずの結果です。あと少し調整できます。');
+    hints.push('スコアが低いパラメータを中心に調整してみましょう。');
+  } else if (r.total >= 30) {
+    msgs.unshift('⚠️ 骨形成は部分的にしか起きていません。');
+    hints.push('複数の条件が最適域を外れています。ヒント：温度は37°C付近が哺乳類細胞の基本です。');
+  } else {
+    msgs.unshift('💀 細胞がほぼ死滅しました。培養条件を根本から見直してください。');
+    hints.push('まず温度を37°Cに戻し、振動を50%、BMP-2を150 ng/mL付近に設定してみましょう。');
+  }
+
+  return {
+    main: msgs.join('<br>'),
+    hint: hints[0] || '各パラメータが細胞に与える影響を1つずつ確認してみましょう。'
+  };
+}
+
+// ── 細胞描画 ─────────────────────────────────────────────
+const canvas = document.getElementById('cellCanvas');
+const ctx = canvas.getContext('2d');
+const R = 150; // キャンバス半径
+
+function initCells(result) {
+  cells = [];
+  calcDeposits = [];
+  deadCells = [];
+
+  const n = Math.round(result.survival / 100 * 28 + 4);
+  const nDead = Math.round((1 - result.survival/100) * 20);
+  const nCalc = Math.round(result.calc / 100 * 18);
+
+  // 正常細胞
+  for (let i = 0; i < n; i++) {
+    let x, y, tries = 0;
+    do {
+      x = (Math.random() - 0.5) * 2 * 120;
+      y = (Math.random() - 0.5) * 2 * 120;
+      tries++;
+    } while (x*x + y*y > 115*115 && tries < 50);
+    cells.push({
+      x: R + x, y: R + y,
+      rx: 18 + Math.random() * 10,
+      ry: 8 + Math.random() * 5,
+      angle: Math.random() * Math.PI,
+      phase: Math.random() * Math.PI * 2,
+      speed: 0.008 + Math.random() * 0.006,
+      // 石灰化してるか
+      calcified: result.calc > 60 && Math.random() < result.calc / 180,
+    });
+  }
+
+  // 死細胞
+  for (let i = 0; i < nDead; i++) {
+    let x, y, tries = 0;
+    do {
+      x = (Math.random() - 0.5) * 2 * 110;
+      y = (Math.random() - 0.5) * 2 * 110;
+      tries++;
+    } while (x*x + y*y > 110*110 && tries < 50);
+    deadCells.push({ x: R + x, y: R + y, r: 7 + Math.random() * 5 });
+  }
+
+  // 石灰化沈着
+  for (let i = 0; i < nCalc; i++) {
+    let x, y, tries = 0;
+    do {
+      x = (Math.random() - 0.5) * 2 * 100;
+      y = (Math.random() - 0.5) * 2 * 100;
+      tries++;
+    } while (x*x + y*y > 100*100 && tries < 50);
+    calcDeposits.push({
+      x: R + x, y: R + y,
+      r: 4 + Math.random() * 8,
+      opacity: 0.5 + Math.random() * 0.4
+    });
+  }
+}
+
+function drawBackground(result) {
+  // 背景色（スコアに応じて）
+  const alp = result.alp;
+  // ALP染色: ネガティブは薄ピンク、ポジティブは濃いピンク〜赤紫
+  const pink = Math.round(220 + (alp / 100) * 20);
+  ctx.fillStyle = `rgb(${pink}, ${Math.round(240 - alp*0.3)}, ${Math.round(238 - alp*0.5)})`;
+  ctx.beginPath();
+  ctx.arc(R, R, R, 0, Math.PI*2);
+  ctx.fill();
+
+  // グリッド（顕微鏡らしさ）
+  ctx.strokeStyle = 'rgba(180,150,150,0.08)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= 300; x += 30) {
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,300); ctx.stroke();
+  }
+  for (let y = 0; y <= 300; y += 30) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(300,y); ctx.stroke();
+  }
+}
+
+function drawCell(c, t) {
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  // わずかに揺れる
+  const wobble = Math.sin(t * c.speed * Math.PI * 2 + c.phase) * 0.5;
+  ctx.rotate(c.angle + wobble * 0.05);
+
+  if (c.calcified) {
+    // 石灰化細胞：青白い
+    const grd = ctx.createRadialGradient(0, 0, 1, 0, 0, c.rx);
+    grd.addColorStop(0, 'rgba(200,220,255,0.95)');
+    grd.addColorStop(0.7, 'rgba(160,190,230,0.85)');
+    grd.addColorStop(1, 'rgba(100,140,200,0.6)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, c.rx, c.ry, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(80,110,180,0.5)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    // 核（暗い青）
+    ctx.fillStyle = 'rgba(50,80,160,0.7)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, c.rx*0.28, c.ry*0.5, 0, 0, Math.PI*2);
+    ctx.fill();
+  } else {
+    // 通常細胞：ピンク紡錘形
+    const grd = ctx.createRadialGradient(-c.rx*0.2, -c.ry*0.2, 1, 0, 0, c.rx);
+    grd.addColorStop(0, 'rgba(240,180,175,0.95)');
+    grd.addColorStop(0.65, 'rgba(220,145,140,0.88)');
+    grd.addColorStop(1, 'rgba(190,105,105,0.6)');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, c.rx, c.ry, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(160,80,80,0.4)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+    // 核
+    ctx.fillStyle = 'rgba(140,60,60,0.75)';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, c.rx*0.3, c.ry*0.55, 0, 0, Math.PI*2);
+    ctx.fill();
+    // 核小体
+    ctx.fillStyle = 'rgba(100,30,30,0.8)';
+    ctx.beginPath();
+    ctx.arc(0, 0, c.ry*0.18, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawDeadCell(c) {
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  // 死細胞：丸まって暗い、膜崩壊
+  const grd = ctx.createRadialGradient(0,0,1,0,0,c.r);
+  grd.addColorStop(0, 'rgba(100,80,80,0.7)');
+  grd.addColorStop(1, 'rgba(60,40,40,0.3)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(0, 0, c.r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(80,40,40,0.5)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCalcDeposit(c) {
+  ctx.save();
+  ctx.globalAlpha = c.opacity;
+  ctx.translate(c.x, c.y);
+  const grd = ctx.createRadialGradient(0,0,1,0,0,c.r);
+  grd.addColorStop(0, 'rgba(230,240,255,1)');
+  grd.addColorStop(0.5, 'rgba(180,200,240,0.9)');
+  grd.addColorStop(1, 'rgba(130,160,210,0.4)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(0,0,c.r,0,Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+function drawMicroscope(t, result) {
+  ctx.clearRect(0,0,300,300);
+  // クリッピング（円形）
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(R, R, R, 0, Math.PI*2);
+  ctx.clip();
+
+  drawBackground(result);
+
+  // 石灰化沈着
+  calcDeposits.forEach(c => drawCalcDeposit(c));
+
+  // 死細胞（下に）
+  deadCells.forEach(c => drawDeadCell(c));
+
+  // 正常細胞
+  cells.forEach(c => drawCell(c, t));
+
+  // 周辺暗化（ビネット）
+  const vig = ctx.createRadialGradient(R,R,80, R,R,R);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.35)');
+  ctx.fillStyle = vig;
+  ctx.beginPath();
+  ctx.arc(R,R,R,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ── アニメーションループ ──────────────────────────────────
+let t = 0;
+function animate() {
+  if (!lastResult) {
+    // 初期表示（空フラスコ風）
+    ctx.clearRect(0,0,300,300);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(R,R,R,0,Math.PI*2);
+    ctx.clip();
+    ctx.fillStyle = '#f8f0ee';
+    ctx.fillRect(0,0,300,300);
+    // 薄いグリッド
+    ctx.strokeStyle = 'rgba(180,150,150,0.1)';
+    ctx.lineWidth = 0.5;
+    for(let x=0;x<=300;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,300);ctx.stroke();}
+    for(let y=0;y<=300;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(300,y);ctx.stroke();}
+    // ビネット
+    const vig = ctx.createRadialGradient(R,R,80,R,R,R);
+    vig.addColorStop(0,'rgba(0,0,0,0)');
+    vig.addColorStop(1,'rgba(0,0,0,0.3)');
+    ctx.fillStyle=vig;
+    ctx.beginPath();ctx.arc(R,R,R,0,Math.PI*2);ctx.fill();
+    // 待機テキスト
+    ctx.fillStyle='rgba(150,100,100,0.4)';
+    ctx.font='12px Space Mono, monospace';
+    ctx.textAlign='center';
+    ctx.fillText('培養開始を待機中...', R, R);
+    ctx.restore();
+    animFrame = requestAnimationFrame(animate);
+    return;
+  }
+  t++;
+  drawMicroscope(t, lastResult);
+  animFrame = requestAnimationFrame(animate);
+}
+animate();
+
+// ── 培養開始 ─────────────────────────────────────────────
+function startCulture() {
+  const btn = document.getElementById('cultureBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>培養中...';
+
+  const overlay = document.getElementById('scopeOverlay');
+  overlay.classList.add('visible');
+
+  // 染色法を結果に応じて切り替え
+  const r = calcScore();
+
+  setTimeout(() => {
+    // 結果確定
+    lastResult = r;
+    initCells(r);
+    trialCount++;
+
+    overlay.classList.remove('visible');
+    btn.disabled = false;
+    btn.innerHTML = '🧫 再培養';
+
+    // 染色タグ更新
+    document.getElementById('stainTag').textContent =
+      r.calc > 50 ? 'ALP/von Kossa染色' : 'HE染色';
+    document.getElementById('dayTag').textContent = '培養 7日目';
+
+    // メーター更新
+    updateMeters(r);
+
+    // フィードバック
+    const msgs = getMessages(r);
+    document.getElementById('feedbackMsg').innerHTML = msgs.main;
+    document.getElementById('hintText').textContent = msgs.hint;
+
+    // スコア
+    document.getElementById('scoreNum').textContent = r.total;
+    const scoreEl = document.getElementById('scoreNum');
+    scoreEl.style.color = r.total >= 80 ? 'var(--green)' :
+                          r.total >= 50 ? 'var(--teal)'  :
+                          r.total >= 30 ? 'var(--yellow)': 'var(--red)';
+
+    // ベストスコア
+    if (r.total > bestScore) {
+      bestScore = r.total;
+      document.getElementById('bestBadge').classList.add('visible');
+    } else {
+      document.getElementById('bestBadge').classList.remove('visible');
+    }
+
+    // 履歴追加
+    addHistory(r);
+
+    // 学習ポイント（80点以上で表示）
+    if (r.total >= 80) {
+      const lb = document.getElementById('learnBox');
+      lb.classList.add('visible');
+      document.getElementById('learnText').textContent =
+        'なぜ最適条件があるのか？ 細胞には「ちょうどよい刺激域（hormesis）」が存在します。振動が強すぎると細胞膜が損傷し、BMP-2が不足すると骨形成シグナルが入らない。' +
+        'in vitro研究では変数を1つずつ制御するからこそ、こうした最適域を精密に特定できます。これがin vivo・in silicoには代替できない価値です。';
+    }
+
+  }, 2200);
+}
+
+function updateMeters(r) {
+  const items = [
+    { id: 'm-alp', bar: 'bar-alp', val: r.alp,      suffix: '%', color: 'var(--teal)'   },
+    { id: 'm-calc', bar: 'bar-calc', val: r.calc,    suffix: '%', color: 'var(--mint)'   },
+    { id: 'm-surv', bar: 'bar-surv', val: r.survival,suffix: '%', color: 'var(--yellow)' },
+  ];
+  items.forEach(item => {
+    document.getElementById(item.id).textContent = item.val + item.suffix;
+    setTimeout(() => {
+      document.getElementById(item.bar).style.width = item.val + '%';
+      document.getElementById(item.bar).style.background = item.color;
+    }, 100);
+  });
+}
+
+function addHistory(r) {
+  history.unshift(r);
+  if (history.length > 5) history.pop();
+
+  const list = document.getElementById('historyList');
+  list.innerHTML = history.map((h, i) => {
+    const color = h.total >= 80 ? '#16A34A' : h.total >= 50 ? '#028090' : h.total >= 30 ? '#F59E0B' : '#DC2626';
+    return `<div class="history-item">
+      <div class="history-dot" style="background:${color}"></div>
+      <span>試行${trialCount - i}</span>
+      <span style="flex:1;text-align:right;color:${color};font-weight:700">${h.total}pt</span>
+      <span style="color:var(--lgray)">ALP:${h.alp}%</span>
+    </div>`;
+  }).join('');
+}
+
+function resetAll() {
+  document.getElementById('v1').value = 50;
+  document.getElementById('v2').value = 100;
+  document.getElementById('v3').value = 10;
+  document.getElementById('v4').value = 370;
+  ['v1','v2','v3','v4'].forEach(id => updateParam(id));
+  lastResult = null;
+  document.getElementById('m-alp').textContent = '—';
+  document.getElementById('m-calc').textContent = '—';
+  document.getElementById('m-surv').textContent = '—';
+  document.getElementById('bar-alp').style.width = '0%';
+  document.getElementById('bar-calc').style.width = '0%';
+  document.getElementById('bar-surv').style.width = '0%';
+  document.getElementById('scoreNum').textContent = '—';
+  document.getElementById('scoreNum').style.color = 'var(--navy)';
+  document.getElementById('feedbackMsg').innerHTML = '条件を設定して「培養開始」を押してください。<br>4つのパラメータを調整し、骨芽細胞の骨形成を最大化しましょう。';
+  document.getElementById('hintText').textContent = '骨芽細胞は適切な機械刺激と成長因子の組み合わせで活性化されます。';
+  document.getElementById('learnBox').classList.remove('visible');
+  document.getElementById('cultureBtn').innerHTML = '🧫 培養開始';
+  document.getElementById('stainTag').textContent = 'HE染色';
+  document.getElementById('dayTag').textContent = '培養 0日目';
+}
+</script>
+</body>
+</html>
